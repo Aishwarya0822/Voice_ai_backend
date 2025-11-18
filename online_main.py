@@ -86,7 +86,7 @@ async def root():
 
 @app.get("/greeting/{bot_type}")
 async def get_greeting(bot_type: str):
-    """Optimized greeting endpoint with Russian support"""
+    """Single greeting endpoint with audio and text"""
     if bot_type not in BOT_CONFIG:
         return JSONResponse(
             content={"error": f"Invalid bot. Available: {list(BOT_CONFIG.keys())}"},
@@ -95,28 +95,18 @@ async def get_greeting(bot_type: str):
     
     config = BOT_CONFIG[bot_type]
     print(f"👋 [{bot_type}] Greeting: {config['greeting']}")
-    return JSONResponse({
-        "text": config["greeting"],
-        "audio_url": f"/greeting/{bot_type}/audio"
-    })
-
-@app.get("/greeting/{bot_type}/audio")
-async def get_greeting_audio(bot_type: str):
-    """Get greeting audio file"""
-    if bot_type not in BOT_CONFIG:
-        return JSONResponse(
-            content={"error": f"Invalid bot. Available: {list(BOT_CONFIG.keys())}"},
-            status_code=400
-        )
     
-    config = BOT_CONFIG[bot_type]
-    print(f"🔊 [{bot_type}] Audio greeting: {config['greeting']}")
+    # Generate audio
     audio_buffer = await text_to_speech(config["greeting"], config["voice"])
     audio_buffer.seek(0)
     
+    # Encode text for header
+    encoded_text = base64.b64encode(config["greeting"].encode('utf-8')).decode('ascii')
+    
     return StreamingResponse(
         audio_buffer,
-        media_type="audio/mpeg"
+        media_type="audio/mpeg",
+        headers={"X-Text-Response": encoded_text}
     )
 
 @app.post("/chat")
