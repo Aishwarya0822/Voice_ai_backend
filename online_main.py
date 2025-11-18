@@ -155,11 +155,12 @@ async def unified_chat(
         
         # Cleanup
         background_tasks.add_task(os.remove, temp_audio)
+        encoded_reply = base64.b64encode(bot_reply.encode('utf-8')).decode('ascii')
         
         return StreamingResponse(
             audio_buffer,
             media_type="audio/mpeg",
-            headers={"X-Text-Response": bot_reply}
+            headers={"X-Text-Response": encoded_reply}
 
         )
         
