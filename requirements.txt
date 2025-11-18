@@ -7,3 +7,4 @@ python-Levenshtein
 inflect
 gtts
 pyttsx3
+open
