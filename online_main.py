@@ -94,6 +94,7 @@ async def get_greeting(bot_type: str):
         )
     
     config = BOT_CONFIG[bot_type]
+    print(f"👋 [{bot_type}] Greeting: {config['greeting']}")
     return JSONResponse({
         "text": config["greeting"],
         "audio_url": f"/greeting/{bot_type}/audio"
@@ -109,6 +110,7 @@ async def get_greeting_audio(bot_type: str):
         )
     
     config = BOT_CONFIG[bot_type]
+    print(f"🔊 [{bot_type}] Audio greeting: {config['greeting']}")
     audio_buffer = await text_to_speech(config["greeting"], config["voice"])
     audio_buffer.seek(0)
     
@@ -158,6 +160,8 @@ async def unified_chat(
         
         # Generate audio response
         audio_buffer = await text_to_speech(bot_reply, config["voice"])
+        
+        print(f"📤 [{bot_type}] Response text: {bot_reply}")
         
         # Cleanup
         background_tasks.add_task(os.remove, temp_audio)
