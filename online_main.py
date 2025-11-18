@@ -158,7 +158,9 @@ async def unified_chat(
         
         return StreamingResponse(
             audio_buffer,
-            media_type="audio/mpeg"
+            media_type="audio/mpeg",
+            headers={"X-Text-Response": bot_reply}
+
         )
         
     except Exception as e:
