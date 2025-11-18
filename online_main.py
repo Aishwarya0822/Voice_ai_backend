@@ -94,14 +94,27 @@ async def get_greeting(bot_type: str):
         )
     
     config = BOT_CONFIG[bot_type]
+    return JSONResponse({
+        "text": config["greeting"],
+        "audio_url": f"/greeting/{bot_type}/audio"
+    })
+
+@app.get("/greeting/{bot_type}/audio")
+async def get_greeting_audio(bot_type: str):
+    """Get greeting audio file"""
+    if bot_type not in BOT_CONFIG:
+        return JSONResponse(
+            content={"error": f"Invalid bot. Available: {list(BOT_CONFIG.keys())}"},
+            status_code=400
+        )
+    
+    config = BOT_CONFIG[bot_type]
     audio_buffer = await text_to_speech(config["greeting"], config["voice"])
     audio_buffer.seek(0)
     
-    encoded_text = base64.b64encode(config["greeting"].encode('utf-8')).decode('ascii')
     return StreamingResponse(
         audio_buffer,
-        media_type="audio/mpeg",
-        headers={"X-Text-Response": encoded_text}
+        media_type="audio/mpeg"
     )
 
 @app.post("/chat")
@@ -149,11 +162,9 @@ async def unified_chat(
         # Cleanup
         background_tasks.add_task(os.remove, temp_audio)
         
-        encoded_reply = base64.b64encode(bot_reply.encode('utf-8')).decode('ascii')
         return StreamingResponse(
             audio_buffer,
-            media_type="audio/mpeg",
-            headers={"X-Text-Response": encoded_reply}
+            media_type="audio/mpeg"
         )
         
     except Exception as e:
