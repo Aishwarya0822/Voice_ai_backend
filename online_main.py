@@ -1,82 +1,15 @@
-
 import os
 import io
 import uuid
 import mimetypes
 import asyncio
-from openai import OpenAI
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Form,Response
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse,StreamingResponse
-from utils.cm_functions import appointment_gpt,insurance_gpt,appointment_gpt_ru,insurance_gpt_ru
-from dotenv import load_dotenv
-
-load_dotenv()
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Text-Response"],
-)
-print("Loaded API key:", os.getenv("OPENAI_API_KEY"))
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY") )
-
-
-
-
-def speech_to_text(file_path: str) -> str:
-    """
-    Convert audio to text using GPT-4o-mini-transcribe.
-    """
-    mime_type = mimetypes.guess_type(file_path)[0] or "audio/mpeg"
-
-    with open(file_path, "rb") as audio_file:
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=(os.path.basename(file_path), audio_file, mime_type),
-        )
-
-    return transcript.text.title()
-def text_to_speech(text: str, voice: str) -> io.BytesIO:
-    """
-    Convert text to speech using gpt-4o-mini-tts via the OpenAI client.
-    Returns an in-memory bytes buffer containing the audio.
-    """
-    response = client.audio.speech.create(
-        model="gpt-4o-mini-tts",
-        voice=voice,
-        input=text
-    )
-
-    # Read the raw audio bytes
-    audio_bytes = response.read()
-
-    # Return as an in-memory buffer
-    return io.BytesIO(audio_bytes)
-
-
-#       ******************ALL API'S******************
-
-
-@app.get("/")
-async def root():
-    return {"message": "Online Voice AI API Ready ✅"}
-
-import os
-import io
-import uuid
-import mimetypes
-import asyncio
+import base64
 from concurrent.futures import ThreadPoolExecutor
 from openai import OpenAI
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
-from utils.cm_functions import appointment_gpt, insurance_gpt
+from utils.cm_functions import appointment_gpt, insurance_gpt, appointment_gpt_ru, insurance_gpt_ru
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -92,54 +25,6 @@ app.add_middleware(
 )
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-executor = ThreadPoolExecutor(max_workers=4)
-
-# Bot configurations
-BOT_CONFIG = {
-    "appointment": {
-        "greeting": "Hi, this is the Healthcare Center. How can I help you?",
-        "voice": "alloy",
-        "handler": appointment_gpt
-    },
-    "insurance": {
-        "greeting": "Hello! This is the Insurance Assistance Center. How can I assist you?",
-        "voice": "echo", 
-        "handler": insurance_gpt
-    }
-}
-
-async def speech_to_text(file_path: str) -> str:
-    """Async STT with optimized file handling"""
-    loop = asyncio.get_event_loop()
-    
-    def _transcribe():
-        mime_type = mimetypes.guess_type(file_path)[0] or "audio/mpeg"
-        with open(file_path, "rb") as audio_file:
-            return client.audio.transcriptions.create(
-                model="whisper-1",
-                file=(os.path.basename(file_path), audio_file, mime_type),
-            ).text
-    
-    return await loop.run_in_executor(executor, _transcribe)
-
-async def text_to_speech(text: str, voice: str) -> io.BytesIO:
-    """Async TTS with memory optimization"""
-    loop = asyncio.get_event_loop()
-    
-    def _synthesize():
-        response = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice=voice,
-            input=text
-        )
-        return io.BytesIO(response.read())
-    
-    return await loop.run_in_executor(executor, _synthesize)
-
-@app.get("/")
-async def root():
-    return {"message": "Voice AI API Ready ✅", "bots": list(BOT_CONFIG.keys())}
-
 executor = ThreadPoolExecutor(max_workers=4)
 
 # Bot configurations with Russian support
@@ -212,10 +97,11 @@ async def get_greeting(bot_type: str):
     audio_buffer = await text_to_speech(config["greeting"], config["voice"])
     audio_buffer.seek(0)
     
+    encoded_text = base64.b64encode(config["greeting"].encode('utf-8')).decode('ascii')
     return StreamingResponse(
         audio_buffer,
         media_type="audio/mpeg",
-        headers={"X-Text-Response": config["greeting"]}
+        headers={"X-Text-Response": encoded_text}
     )
 
 @app.post("/chat")
@@ -263,10 +149,11 @@ async def unified_chat(
         # Cleanup
         background_tasks.add_task(os.remove, temp_audio)
         
+        encoded_reply = base64.b64encode(bot_reply.encode('utf-8')).decode('ascii')
         return StreamingResponse(
             audio_buffer,
             media_type="audio/mpeg",
-            headers={"X-Text-Response": bot_reply}
+            headers={"X-Text-Response": encoded_reply}
         )
         
     except Exception as e:
