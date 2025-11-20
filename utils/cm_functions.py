@@ -80,34 +80,64 @@ def insurance_gpt(user_message: str) -> str:
     # 🔟 Default fallback
     return "I'm sorry, could you please clarify your insurance question?"
 
-# Add these functions to utils/cm_functions.py
-
 def appointment_gpt_ru(user_message: str) -> str:
     user_message = user_message.lower().strip()
-    
+
     def similar(msg, pattern, threshold=70):
         return fuzz.partial_ratio(msg, pattern.lower()) >= threshold
-    
-    # Russian greetings
+
+    # 1️⃣ Greeting
     if any(similar(user_message, greet) for greet in ["привет", "здравствуйте", "добрый день"]):
         return "Привет! Как я могу вам помочь сегодня?"
-    
-    # Booking intents in Russian
-    elif any(word in user_message for word in ["записать", "запись", "прием", "врач"]):
-        if "стоматолог" in user_message or "зубной" in user_message:
-            return "Понятно. Можете предоставить ваш номер телефона для записи?"
+
+    # 2️⃣ If message contains digits → treat as phone number FIRST
+    if any(char.isdigit() for char in user_message):
+        return "Спасибо! У доктора Михаила есть свободное время завтра в 14:00. Вам подходит это время?"
+
+    # 3️⃣ Booking intents
+    if any(word in user_message for word in ["стоматолог", "зуб", "зубной"]):
+        return "Понятно. Можете предоставить ваш номер телефона?"
+
+    # 3️⃣ Booking intent
+    if any(word in user_message for word in ["записать", "запись", "прием", "врач"]):
         return "Конечно! К какому врачу вы хотели бы записаться?"
-    
-    elif "не могу" in user_message or "проверить время" in user_message:
-        return "Конечно. Позвольте проверить... есть свободное время в 17:00. Вам подходит?"
-    
-    elif any(char.isdigit() for char in user_message):
-        return "Спасибо. У доктора Михаила есть свободное время завтра в 14:00. Вам подходит это время?"
-    
-    elif any(word in user_message for word in ["да", "подходит", "хорошо", "отлично"]):
-        return "Отлично! Ваша запись к доктору Михаилу успешно забронирована на завтра в 17:00. Спасибо за выбор нашей клиники!"
-    
+
+    # 4️⃣ Confirm appointment
+    if any(word in user_message for word in ["да", "подходит", "хорошо", "отлично"]):
+        return "Отлично! Ваша запись к доктору Михаилу успешно забронирована на завтра в 14:00. Спасибо за выбор нашей клиники!"
+
+    # 5️⃣ Default
     return "Извините, не могли бы вы повторить?"
+
+
+# Add these functions to utils/cm_functions.py
+
+# def appointment_gpt_ru(user_message: str) -> str:
+#     user_message = user_message.lower().strip()
+    
+#     def similar(msg, pattern, threshold=70):
+#         return fuzz.partial_ratio(msg, pattern.lower()) >= threshold
+    
+#     # Russian greetings
+#     if any(similar(user_message, greet) for greet in ["привет", "здравствуйте", "добрый день"]):
+#         return "Привет! Как я могу вам помочь сегодня?"
+    
+#     # Booking intents in Russian
+#     elif any(word in user_message for word in ["записать", "запись", "прием", "врач"]):
+#         if "стоматолог" in user_message or "зубной" in user_message:
+#             return "Понятно. Можете предоставить ваш номер телефона для записи?"
+#         return "Конечно! К какому врачу вы хотели бы записаться?"
+    
+#     elif "не могу" in user_message or "проверить время" in user_message:
+#         return "Спасибо. У доктора Майкла есть свободное время завтра в 2 часа. Вам подходит это время?"
+    
+#     elif any(char.isdigit() for char in user_message):
+#         return "Спасибо. У доктора Михаила есть свободное время завтра в 14:00. Вам подходит это время?"
+    
+#     elif any(word in user_message for word in ["да", "подходит", "хорошо", "отлично"]):
+#         return "Отлично! Ваша запись к доктору Михаилу успешно забронирована на завтра в 17:00. Спасибо за выбор нашей клиники!"
+    
+#     return "Извините, не могли бы вы повторить?"
 
 def insurance_gpt_ru(user_message: str) -> str:
     user_message = user_message.lower().strip()
