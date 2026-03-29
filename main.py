@@ -11,6 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse,FileResponse
 from utils.common_function import text_to_speech,local_gpt,cleanup_file,clean_text
 
+# http://localhost:8000/greeting/appointment?voice_type=indian_male
+# http://localhost:8000/greeting/appointment?voice_type=indian_female
+# http://localhost:8000/greeting/appointment?voice_type=american_male
+# http://localhost:8000/greeting/appointment?voice_type=american_female
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
